@@ -1735,6 +1735,25 @@
       box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
     }
 
+    .delete-btn {
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      flex: 1;
+      text-align: center;
+      color: white;
+      text-decoration: none;
+      padding: 10px 0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      transition: transform 0.3s;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 10px rgba(244, 67, 54, 0.3);
+    }
+
     .no-files {
       text-align: center;
       color: #B0BEC5;
@@ -3669,12 +3688,48 @@
                 <a href="${file.data}" download="${file.name}" class="download-btn">
                   <i class="fas fa-download"></i> Download
                 </a>
+                <div class="delete-btn" data-id="${file.id}">
+                  <i class="fas fa-trash"></i> Hapus
+                </div>
               </div>
             </div>
           `;
           
+          // Tambahkan event listener untuk tombol hapus
+          const deleteBtn = fileCard.querySelector('.delete-btn');
+          deleteBtn.addEventListener('click', function() {
+            const fileId = this.getAttribute('data-id');
+            deleteFile(fileId);
+          });
+          
           fileList.appendChild(fileCard);
         });
+      }
+      
+      // Fungsi untuk menghapus file
+      function deleteFile(fileId) {
+        if (!confirm('Apakah Anda yakin ingin menghapus file ini?')) {
+          return;
+        }
+        
+        const fileIndex = mediaFiles.findIndex(file => file.id == fileId);
+        if (fileIndex !== -1) {
+          mediaFiles.splice(fileIndex, 1);
+          saveFiles();
+          
+          // Tampilkan file yang tersisa (dengan filter video jika tidak sedang pencarian)
+          const searchTerm = searchInput.value.trim().toLowerCase();
+          if (searchTerm) {
+            displayFiles(mediaFiles.filter(file => 
+              file.name.toLowerCase().includes(searchTerm) || 
+              (file.type && file.type.toLowerCase().includes(searchTerm))
+            ));
+          } else {
+            displayFiles(mediaFiles.filter(file => !file.type.includes('video')));
+          }
+          
+          showNotification('File berhasil dihapus');
+        }
       }
       
       // Fungsi untuk memformat tanggal
@@ -3740,7 +3795,18 @@
           
           mediaFiles.push(newFile);
           saveFiles();
-          displayFiles(mediaFiles);
+          
+          // Tampilkan file yang tersisa (dengan filter video jika tidak sedang pencarian)
+          const searchTerm = searchInput.value.trim().toLowerCase();
+          if (searchTerm) {
+            displayFiles(mediaFiles.filter(file => 
+              file.name.toLowerCase().includes(searchTerm) || 
+              (file.type && file.type.toLowerCase().includes(searchTerm))
+            ));
+          } else {
+            displayFiles(mediaFiles.filter(file => !file.type.includes('video')));
+          }
+          
           showNotification(`File "${fileName}" berhasil diupload!`);
           
           // Reset form
@@ -3756,10 +3822,12 @@
         const searchTerm = this.value.toLowerCase().trim();
         
         if (searchTerm === '') {
-          displayFiles(mediaFiles);
+          // Jika tidak ada pencarian, sembunyikan video
+          displayFiles(mediaFiles.filter(file => !file.type.includes('video')));
           return;
         }
         
+        // Jika ada pencarian, tampilkan semua file yang cocok termasuk video
         const filteredFiles = mediaFiles.filter(file => 
           file.name.toLowerCase().includes(searchTerm) || 
           (file.type && file.type.toLowerCase().includes(searchTerm))
@@ -3768,8 +3836,9 @@
         displayFiles(filteredFiles);
       });
       
-      // Tampilkan semua file saat pertama kali dimuat
-      displayFiles(mediaFiles);
+      // Tampilkan file saat pertama kali dimuat (tanpa video)
+      const filesWithoutVideo = mediaFiles.filter(file => !file.type.includes('video'));
+      displayFiles(filesWithoutVideo);
       updateStorageDisplay();
     }
     
